@@ -67,3 +67,18 @@ ranking/
 ├── vite.config.ts
 └── README.md
 
+Running the Complete Application
+Use two terminals.
+
+Terminal 1:
+cd ranking
+npm run server
+
+Terminal 2:
+cd ranking
+npm run dev
+
+Then open:
+http://localhost:5173
+The frontend will load leaderboard data from the backend, and the backend will read and write player scores in the SQLite database. ``````
+

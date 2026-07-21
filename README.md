@@ -34,5 +34,36 @@ Node.js 22.5 or newer is required because the backend uses the built-in `node:sq
 
 Open a terminal in the `ranking` folder and install the dependencies:
 
-```bash
 npm install
+
+
+## Database
+The backend automatically creates a SQLite database at:
+
+The database contains a players table.
+
+Column	Type	Description
+id	INTEGER	Unique player ID
+name	TEXT	Player name
+score	INTEGER	Player score
+The database is created automatically when the backend starts for the first time.
+
+
+## Project Structure
+
+ranking/
+├── data/
+│   └── leaderboard.sqlite
+├── public/
+├── src/
+│   ├── main.tsx
+│   ├── style.css
+│   └── counter.ts
+├── index.html
+├── package.json
+├── package-lock.json
+├── server.mjs
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
+

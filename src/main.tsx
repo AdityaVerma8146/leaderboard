@@ -25,18 +25,53 @@ const SEED: Player[] = [
    (Implemented in-memory here; swap the bodies for real fetch()
    calls to your backend and the UI below needs no changes.)
    ============================================================ */
-function useLeaderboardApi(initial: Player[]) {
+function useLeaderboardApi(initial: Player[], baseUrl?: string) {
   const [players, setPlayers] = useState<Player[]>(initial);
+
+  // helper to refresh players from remote API when configured
+  const refreshFromServer = useCallback(async () => {
+    if (!baseUrl) return;
+    try {
+      const res = await fetch(`${baseUrl.replace(/\/$/, "")}/scores`);
+      if (!res.ok) throw new Error("Failed to fetch scores");
+      const data: Player[] = await res.json();
+      setPlayers(data);
+    } catch (err) {
+      console.warn("Leaderboard: could not refresh from server", err);
+    }
+  }, [baseUrl]);
+
+  // fetch initial players if using remote
+  React.useEffect(() => {
+    if (baseUrl) refreshFromServer();
+  }, [baseUrl, refreshFromServer]);
 
   // 1. POST — add a new score for a player
   const addScore = useCallback((score: number, playerName: string) => {
+    if (baseUrl) {
+      // POST to remote and refresh
+      (async () => {
+        try {
+          await fetch(`${baseUrl.replace(/\/$/, "")}/scores`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: playerName.trim().slice(0, 30), score }),
+          });
+          await refreshFromServer();
+        } catch (err) {
+          console.warn("addScore failed", err);
+        }
+      })();
+      return;
+    }
+
     setPlayers((prev) => {
       const nextId = prev.length ? Math.max(...prev.map((p) => p.id)) + 1 : 1;
       const name = playerName.trim().slice(0, 30);
       if (!name) return prev;
       return [...prev, { id: nextId, name, score }];
     });
-  }, []);
+  }, [baseUrl, refreshFromServer]);
 
   // 2. GET — top n players, sorted by score descending
   const showTop = useCallback(
@@ -82,7 +117,13 @@ const PODIUM = {
    COMPONENT
    ============================================================ */
 export default function Leaderboard() {
-  const { addScore, showTop, myRank, fullRanked } = useLeaderboardApi(SEED);
+  const [useRemote, setUseRemote] = useState(false);
+  const [apiBase, setApiBase] = useState("http://localhost:3000");
+
+  const { addScore, showTop, myRank, fullRanked } = useLeaderboardApi(
+    SEED,
+    useRemote ? apiBase : undefined
+  );
 
   const [nameInput, setNameInput] = useState("");
   const [scoreInput, setScoreInput] = useState("");
@@ -235,6 +276,28 @@ export default function Leaderboard() {
 
         {/* ---------------- SIDEBAR: ADD SCORE + MY RANK ---------------- */}
         <aside style={styles.sidebar}>
+          <section style={styles.panel}>
+            <h2 style={styles.panelTitle}>API</h2>
+            <label style={styles.label}>
+              Use remote API
+              <input
+                type="checkbox"
+                checked={useRemote}
+                onChange={(e) => setUseRemote(e.target.checked)}
+                style={{ marginLeft: 8 }}
+              />
+            </label>
+            {useRemote && (
+              <label style={styles.label}>
+                Base URL
+                <input
+                  style={styles.input}
+                  value={apiBase}
+                  onChange={(e) => setApiBase(e.target.value)}
+                />
+              </label>
+            )}
+          </section>
           <section style={styles.panel}>
             <h2 style={styles.panelTitle}>Submit a score</h2>
             <form onSubmit={handleAdd} style={styles.form}>
